@@ -17,15 +17,15 @@ export class ACID{
 	static CHARACTERS = this.OPERATORS + this.VALUES + this.FUNCTIONS
 	static VALUE_FUNC = this.NUMBERS + this.VALUES
 	static OP_CON = ["+","*","/","-"]
-	static FNC_CON = ["SQUARE(","SINE(","TRIANGLE(","INVERT(","EXPAND(","COMPRESS(","CLOCK(","PLASMA(","SIMPLEX(","PERLIN(","LOWER(","BIGGER(","BITMAP(","WATER(","FRAME("]
+	static FNC_CON = ["SQUARE(","SINE(","TRIANGLE(","INVERT(","EXPAND(","COMPRESS(","CLOCK(","PLASMA(","SIMPLEX(","PERLIN(","LOWER(","BIGGER(","SLBITMAP(","WATER(","FRAME("]
 	static MAX_ARG_PER_FNC = [1,1,1,1,1,1,1,1,1,2,2,1,1,1,1]
 
 	static analyzeChar(c){
 			c.value = false
 		    c.numberOfArguments = 0
 		    if(c.type == "NUMBER"){
-		      v = c.subtype == "LOP" ? ACID.LOP_NUMBERS.indexOf(c.char) / (ACID.LOP_NUMBERS.length - 1) : ACID.HIP_NUMBERS.indexOf(c.char) / (ACID.HIP_NUMBERS.length - 1)
-		      v = v == 1 ? "1.0" : v == 0 ? "0.0" : "" + v
+		      let v = c.sub == "LOP" ? ACID.LOP_NUMBERS.indexOf(c.char) / (ACID.LOP_NUMBERS.length - 1) : ACID.HIP_NUMBERS.indexOf(c.char) / (ACID.HIP_NUMBERS.length - 1)
+		      v = v >= 1 ? "1.0" : v <= 0 ? "0.0" : "" + v
 		      c.value = v
 		    }
 		    else if(c.type == "CHARACTER"){
@@ -88,9 +88,13 @@ export class ACID{
   		this.update("")
   	}
   	update(string){
-  		return this.#convertStringToShader(string)
+  		let shader = this.#convertStringToShader(string)
+  		console.log(shader)
+  		return shader
   	}
   	#convertStringToShader(string){
+  		let slBitmaps = []
+      let slBitmapSizes = [0]
 	  	let lines = string.replaceAll("\n\n","\n").split("\n")
 	    let words = lines.map((l) => l.split(' '))
 	    let _lines = []
@@ -104,17 +108,21 @@ export class ACID{
 	    }
 	    lines = _lines
 	    lines = lines.map((l) => l.split(""))
-	    let bitmap = string.replaceAll("\n","").split("").map((c) => c == " " ? 0.0 : (c.charCodeAt(0) - 47) / 43)
+	    let bitmap = string.replaceAll("\n","").split("").map((c) => c == " " ? 0.0 : Math.max(0,Math.min(((c.charCodeAt(0) - 65) / 26),1)))
 	    this.#glWrapper.parameters.bitmap = new Float32Array(bitmap)
 	    this.#glWrapper.parameters.bitmapSize = this.#glWrapper.parameters.bitmap.length
 	    let RGB = [["0.0"],["0.0"],["0.0"]]
-	    for(let l = 0; l < lines.length; l++){ 
+	    for(let l = 0; l < lines.length; l++){
 	      let c = l % 4 
 	      let brightness = Math.ceil((lines.length-l)/4) / Math.ceil(lines.length/4) 
 	      brightness = Math.floor(brightness) == brightness ? brightness + ".0" : brightness
 	      let line = lines[l]
+	      let slBitmap = line.map((c) => c == " " ? 0.0 : (c.charCodeAt(0) - 47) / 43)
+	      let index = slBitmapSizes.length > 0 ? slBitmapSizes[slBitmapSizes.length-1] : 0
+	    	slBitmaps.push(slBitmap)
+	    	slBitmapSizes.push(slBitmap.length + index)
 	      if(line.length > 0){
-	        let conv = this.#convertLineToShader(line) 
+	        let conv = this.#convertLineToShader(line,l) 
 	        conv = conv ? conv + "*" + brightness : "0.0"
 	        if(conv.length > 0){
 	          if(c == 0){
@@ -128,9 +136,12 @@ export class ACID{
 	        }
 	      }
 	    }
+
+	    this.#glWrapper.parameters.slBitmaps = new Float32Array(slBitmaps.flat())
+      	this.#glWrapper.parameters.slBitmapSizes = new Float32Array(slBitmapSizes)
 	    return "vec4(mod(" + RGB[0].join(" + ") + ",1.0001),mod(" + RGB[1].join(" + ") + ",1.0001),mod(" + RGB[2].join(" + ") + ",1.0001),1.0)"
   	}
-  	#convertLineToShader(line){
+  	#convertLineToShader(line,n){
   		let shader = ""
 	    let currentlyOpenBrackets = 0
 	    let argumentArray = []
@@ -200,7 +211,7 @@ export class ACID{
 	        }
 	        else if(C.sub == "FUNCTION"){
 	            if(P.sub == "OPERATOR" || P.sub == "MAPPING" || P.sub == "FUNCTION" || !P || argumentArray.length > 0){ 
-	              shader += C.value //add value to command
+	              shader += C.value
 	            }
 	            else if(P.type == "NUMBER" || P.sub == "VALUE" || P.type == "END" ){
 	              shader += "+" + C.value
@@ -211,7 +222,7 @@ export class ACID{
 	                argumentArray.pop()
 	              }
 	            }
-	            argumentArray.push(C.arguments)
+	            argumentArray.push(C.numberOfArguments)
 	            currentlyOpenBrackets++
 	        }
 	      }
@@ -225,7 +236,8 @@ export class ACID{
 	    replaceAll("PLASMA(","PLASMA(XY,").replaceAll("PLASMA(XY,)","PLASMA(XY)").replaceAll("PLASMA(",() => "PLASMA(SIMPLEX(" + this.#seed++ + ".0),").
 	    replaceAll("PERLIN(","PERLIN(XY,").replaceAll("PERLIN(XY,)","PERLIN(XY)").replaceAll("PERLIN(",() => "PERLIN(SIMPLEX(" + this.#seed++ + ".0),").
 	    replaceAll("FIRE(","FIRE(XY,").replaceAll("FIRE(XY,)","FIRE(XY)").replaceAll("FIRE(",() => "FIRE(SIMPLEX(" + this.#seed++ + ".0),").
-	    replaceAll("WATER(","WATER(XY,").replaceAll("WATER(XY,)","WATER(XY)").replaceAll("WATER(",() => "WATER(SIMPLEX(" + this.#seed++ + ".0),")
+	    replaceAll("WATER(","WATER(XY,").replaceAll("WATER(XY,)","WATER(XY)").replaceAll("WATER(",() => "WATER(SIMPLEX(" + this.#seed++ + ".0),").
+	    replaceAll("SLBITMAP(",() => "SLBITMAP(" + n + ",").replaceAll("SLBITMAP(" + n + ",)",() => "SLBITMAP(" + n + ")")
 	    return shader
   	}   
 	#convertCharacterToShader(char){

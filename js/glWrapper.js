@@ -22,6 +22,8 @@ export class GLWrapper{
       mouseY: 0,
       bitmap: new Float32Array([]),
       bitmapSize: 0,
+      slBitmaps: new Float32Array([]),
+      slBitmapSizes: new Float32Array([]),
       spacePressed: 0,
       bpmDivisor: 1/(60*1000/128*4)
     }
@@ -94,6 +96,8 @@ export class GLWrapper{
     this.#locations.sizeLocation = this.#gl.getUniformLocation(this.#locations.program,"size")
     this.#locations.bitmapLocation = this.#gl.getUniformLocation(this.#locations.program,"bitmap")
     this.#locations.bitmapSizeLocation = this.#gl.getUniformLocation(this.#locations.program,"bitmapSize")
+    this.#locations.slBitmapsLocation = this.#gl.getUniformLocation(this.#locations.program,"slBitmaps")
+    this.#locations.slBitmapSizesLocation = this.#gl.getUniformLocation(this.#locations.program,"slBitmapSizes")
     this.#locations.spacePressedLocation = this.#gl.getUniformLocation(this.#locations.program,"spacePressed")
   } 
   #createShader( src, type ) {
@@ -125,6 +129,8 @@ export class GLWrapper{
     this.#gl.uniform1f(this.#locations.sizeLocation,this.parameters.screenSize)
     this.#gl.uniform1fv(this.#locations.bitmapLocation,this.parameters.bitmap)
     this.#gl.uniform1i(this.#locations.bitmapSizeLocation,this.parameters.bitmapSize)
+    this.#gl.uniform1fv(this.#locations.slBitmapsLocation,this.parameters.slBitmaps)
+    this.#gl.uniform1fv(this.#locations.slBitmapSizesLocation,this.parameters.slBitmapSizes)
     this.#gl.uniform1i(this.#locations.spacePressedLocation,this.parameters.spacePressed)
     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER,this.#locations.buffer)
     this.#gl.vertexAttribPointer(this.#locations.vertexPosition,2,this.#gl.FLOAT,false,0,0)

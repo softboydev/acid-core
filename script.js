@@ -5,5 +5,6 @@ window.addEventListener('DOMContentLoaded',function(){
   input.addEventListener("input",function(e){
     e.preventDefault()
   })
-  new ACIDWrapper(input)
+  const seed = Math.floor(Math.random() * 1000000)
+  new ACIDWrapper(input,seed)
 })

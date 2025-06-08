@@ -9,6 +9,8 @@ uniform float seed; //random seed
 uniform float size; //unit definition
 uniform float bitmap[32];
 uniform int bitmapSize;
+uniform float slBitmaps[128];
+uniform float slBitmapSizes[32];
 uniform int spacePressed;
 #define PI 3.141592653589793 //pi circle radius
 #define PHI 1.61803398874989484820459 //phi golden ratio
@@ -416,7 +418,7 @@ float EXPAND(in float n, in float a, in float b){
 
 
 float CLOCK(in float n){
-	return clamp(time * n);
+	return clamp(clamp(time) * n);
 }
 float CLOCK(){
 	return clamp(time);
@@ -493,19 +495,18 @@ float BIGGER(in float a, in float b, in float c){
 float BIGGER(in float a, in float b, in float c, in float d){
 	return BIGGER(a,b);
 }
-
-
 float BITMAP(in float _n){
 	float r;
 	int n = int(floor(_n * float(bitmapSize)));
-  for (int i=0; i<1024; i++) {
-     if (i==n) {
+  	for (int i=0; i<1024; i++) {
+     	if (i==n) {
         r = bitmap[i];
         break;
      }
   }
 	return r;
 }
+
 float BITMAP(){
 	return bitmap[0];
 }
@@ -513,6 +514,44 @@ float BITMAP(){
 float BITMAP(in float _n, in float a){
 	return BITMAP(_n);
 }
+
+
+
+float SLBITMAP(in int l, in float _n){
+
+	int size;
+	int start;
+	int end;
+	for (int i=0; i<128; i++) {
+     	if (i==l) {
+			start = int(slBitmapSizes[i]);
+			end = int(slBitmapSizes[i+1]);
+       	 	size = end - start;
+        break;
+     }
+	}
+	int n = int(floor(clamp(_n) * float(size)));
+	int g = start + n;
+	float r = 0.0;
+	
+  	for (int i=0; i<128; i++) {
+     	if (i==n) {
+        	r = bitmap[i];
+        	break;
+     	}
+  	}
+	return r;
+}
+float SLBITMAP(in int l, in float _n, in float a){
+	return SLBITMAP(l,_n);
+}
+float SLBITMAP(in float _n){
+	return BITMAP(_n);
+}
+float SLBITMAP(in int l){
+	return SLBITMAP(l,0.0);
+}
+
 
 
 float frandom (in vec2 st) {

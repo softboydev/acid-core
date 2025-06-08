@@ -17,7 +17,7 @@ void main() {
 	float Z = float(spacePressed);
 	float I = 0.5; //RESERVED
 	float O = 0.5; //RESERVED
-	gl_FragColor = vec4(0.5,0.2,0.1,1.0);
+	gl_FragColor = vec4(0.0);
 }
 
 `
